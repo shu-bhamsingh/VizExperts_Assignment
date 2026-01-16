@@ -7,6 +7,7 @@ import './App.css';
 function App() {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
+  const [paused, setPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [chunkStates, setChunkStates] = useState([]);
   const [metrics, setMetrics] = useState({
@@ -22,6 +23,7 @@ function App() {
   const fileInputRef = useRef(null);
   const startTimeRef = useRef(null);
   const uploadedBytesRef = useRef(0);
+  const cancelSignalRef = useRef({ cancelled: false });
   
   const handleFileSelect = (event) => {
     const selectedFile = event.target.files[0];
@@ -67,11 +69,18 @@ function App() {
     if (!file) return;
     
     setUploading(true);
+    setPaused(false);
     setError(null);
     setSuccess(false);
-    setProgress(0);
-    startTimeRef.current = Date.now();
-    uploadedBytesRef.current = 0;
+    
+    if (!startTimeRef.current) {
+      setProgress(0);
+      startTimeRef.current = Date.now();
+      uploadedBytesRef.current = 0;
+    }
+    
+    // Reset cancel signal
+    cancelSignalRef.current = { cancelled: false };
     
     try {
       const result = await uploadFile(file, {
@@ -93,23 +102,53 @@ function App() {
         onComplete: (id) => {
           setSuccess(true);
           setUploadId(id);
+          startTimeRef.current = null;
         },
         
         onError: (errorMsg) => {
           setError(errorMsg);
-        }
-      });
+        },
+        
+        onPause: (id, states) => {
+          setUploadId(id);
+          setChunkStates([...states]);
+          setPaused(true);
+          setUploading(false);
+        },
+        
+        cancelSignal: cancelSignalRef.current
+      }, uploadId); // Pass uploadId for resume
+      
+      // Check if paused
+      if (result && result.paused) {
+        setUploadId(result.uploadId);
+        setPaused(true);
+      }
       
     } catch (err) {
       setError(err.message);
     } finally {
-      setUploading(false);
+      if (!cancelSignalRef.current.cancelled) {
+        setUploading(false);
+      }
     }
   };
   
+  const handlePause = () => {
+    cancelSignalRef.current.cancelled = true;
+    console.log('⏸️ Pausing upload...');
+  };
+  
+  const handleResume = () => {
+    console.log('▶️ Resuming upload...');
+    handleUpload();
+  };
+  
   const handleReset = () => {
+    cancelSignalRef.current.cancelled = true;
     setFile(null);
     setUploading(false);
+    setPaused(false);
     setProgress(0);
     setChunkStates([]);
     setMetrics({
@@ -121,6 +160,7 @@ function App() {
     setError(null);
     setSuccess(false);
     setUploadId(null);
+    startTimeRef.current = null;
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -172,20 +212,40 @@ function App() {
           )}
           
           <div className="button-group">
-            <button
-              onClick={handleUpload}
-              disabled={!file || uploading}
-              className="button button-primary"
-            >
-              {uploading ? 'Uploading...' : 'Start Upload'}
-            </button>
+            {!uploading && !paused && (
+              <button
+                onClick={handleUpload}
+                disabled={!file}
+                className="button button-primary"
+              >
+                {uploadId ? '🔄 Resume Upload' : '🚀 Start Upload'}
+              </button>
+            )}
+            
+            {uploading && (
+              <button
+                onClick={handlePause}
+                className="button button-warning"
+              >
+                ⏸️ Pause Upload
+              </button>
+            )}
+            
+            {paused && (
+              <button
+                onClick={handleResume}
+                className="button button-success"
+              >
+                ▶️ Resume Upload
+              </button>
+            )}
             
             <button
               onClick={handleReset}
               disabled={uploading}
               className="button button-secondary"
             >
-              Reset
+              🔄 Reset
             </button>
           </div>
         </div>

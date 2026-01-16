@@ -126,13 +126,15 @@ async function uploadChunk(uploadId, chunkIndex, chunkBlob, retryCount = 0) {
  * Main upload orchestrator
  * Implements queue-based concurrent upload with progress tracking
  */
-async function uploadFile(file, callbacks = {}) {
+async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
   const {
     onProgress = () => {},
     onChunkComplete = () => {},
     onChunkError = () => {},
     onComplete = () => {},
-    onError = () => {}
+    onError = () => {},
+    onPause = () => {},
+    cancelSignal = { cancelled: false }
   } = callbacks;
   
   try {
@@ -145,9 +147,29 @@ async function uploadFile(file, callbacks = {}) {
     const fileHash = await calculateFileHash(file);
     console.log(`Hash: ${fileHash.substring(0, 16)}...`);
     
-    // Step 3: Initialize upload
-    console.log('🚀 Initializing upload...');
-    const { uploadId, uploadedChunks } = await initializeUpload(file, fileHash);
+    // Step 3: Initialize upload or resume existing
+    let uploadId, uploadedChunks;
+    
+    if (resumeUploadId) {
+      console.log('🔄 Resuming upload:', resumeUploadId);
+      uploadId = resumeUploadId;
+      // Fetch current status from backend
+      const response = await fetch(`${API_BASE_URL}/upload/${uploadId}/status`);
+      if (response.ok) {
+        const status = await response.json();
+        uploadedChunks = status.progress?.completed || 0;
+        // Convert to array of indices
+        uploadedChunks = Array.from({ length: uploadedChunks }, (_, i) => i);
+      } else {
+        uploadedChunks = [];
+      }
+    } else {
+      console.log('🚀 Initializing upload...');
+      const result = await initializeUpload(file, fileHash);
+      uploadId = result.uploadId;
+      uploadedChunks = result.uploadedChunks;
+    }
+    
     console.log(`Upload ID: ${uploadId}`);
     console.log(`Already uploaded: ${uploadedChunks.length} chunks`);
     
@@ -174,6 +196,13 @@ async function uploadFile(file, callbacks = {}) {
     const activeUploads = new Set();
     
     const uploadNextChunk = async () => {
+      // Check if upload was cancelled/paused
+      if (cancelSignal.cancelled) {
+        console.log('⏸️ Upload paused');
+        onPause(uploadId, chunkStates);
+        return;
+      }
+      
       if (queueIndex >= chunkQueue.length) {
         return;
       }
@@ -206,8 +235,8 @@ async function uploadFile(file, callbacks = {}) {
       } finally {
         activeUploads.delete(chunkIndex);
         
-        // Upload next chunk
-        if (queueIndex < chunkQueue.length) {
+        // Upload next chunk (check cancel signal again)
+        if (queueIndex < chunkQueue.length && !cancelSignal.cancelled) {
           await uploadNextChunk();
         }
       }
@@ -219,9 +248,15 @@ async function uploadFile(file, callbacks = {}) {
       Array(initialBatch).fill(null).map(() => uploadNextChunk())
     );
     
-    // Wait for all uploads to complete
-    while (activeUploads.size > 0) {
+    // Wait for all uploads to complete or until paused
+    while (activeUploads.size > 0 && !cancelSignal.cancelled) {
       await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    
+    // If paused, return the uploadId for resuming
+    if (cancelSignal.cancelled) {
+      console.log('⏸️ Upload paused at', uploadedCount, '/', totalChunks);
+      return { uploadId, paused: true, progress: uploadedCount };
     }
     
     // Step 6: Check if all succeeded
