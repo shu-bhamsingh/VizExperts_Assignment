@@ -12,8 +12,6 @@ const CHUNK_SIZE = parseInt(process.env.CHUNK_SIZE) || 5242880;
 async function initializeUpload(req, res) {
   const { filename, totalSize, totalChunks, fileHash } = req.body;
   
-  // console.log('Init upload:', { filename, totalSize, totalChunks });
-  
   if (!filename || !totalSize || !totalChunks) {
     return res.status(400).json({
       error: 'Missing required fields: filename, totalSize, totalChunks'
@@ -26,7 +24,6 @@ async function initializeUpload(req, res) {
     });
   }
   
-  // Check if file is ZIP
   if (!filename.toLowerCase().endsWith('.zip')) {
     return res.status(400).json({
       error: 'Only ZIP files are supported'
@@ -44,18 +41,15 @@ async function initializeUpload(req, res) {
     console.log(`Pre-allocating ${totalSize} bytes for ${filename}`);
     await fileUtils.preallocateFile(filePath, totalSize);
     
-    // Start transaction
     connection = await db.getConnection();
     await connection.beginTransaction();
     
-    // Insert upload record
     await connection.query(
       `INSERT INTO uploads (id, filename, total_size, total_chunks, status, file_path, created_at, updated_at)
        VALUES (?, ?, ?, ?, 'UPLOADING', ?, NOW(), NOW())`,
       [uploadId, filename, totalSize, totalChunks, filePath]
     );
     
-    // Pre-create all chunk records as PENDING
     const chunkRecords = [];
     for (let i = 0; i < totalChunks; i++) {
       chunkRecords.push([uploadId, i, 'PENDING']);
@@ -68,7 +62,6 @@ async function initializeUpload(req, res) {
     
     await connection.commit();
     
-    // Query uploaded chunks (in case of resume)
     const [uploadedChunks] = await connection.query(
       `SELECT chunk_index FROM chunks WHERE upload_id = ? AND status = 'SUCCESS'`,
       [uploadId]
@@ -104,7 +97,6 @@ async function uploadChunk(req, res) {
   const { uploadId, chunkIndex, chunkHash } = req.body;
   const chunkData = req.file;
   
-  // Validation
   if (!uploadId || chunkIndex === undefined || !chunkData) {
     return res.status(400).json({
       error: 'Missing required fields: uploadId, chunkIndex, or chunk data'
@@ -118,7 +110,6 @@ async function uploadChunk(req, res) {
   try {
     connection = await db.getConnection();
     
-    // Verify chunk hash if provided (integrity check)
     if (chunkHash) {
       const chunkBuffer = require('fs').readFileSync(chunkData.path);
       const isValid = chunkHashUtils.verifyChunkHash(chunkBuffer, chunkHash);
@@ -134,7 +125,6 @@ async function uploadChunk(req, res) {
       console.log(`✓ Chunk ${chunkIndexNum} hash verified`);
     }
     
-    // Fetch upload details
     const [uploads] = await connection.query(
       `SELECT id, file_path, total_chunks, total_size, status FROM uploads WHERE id = ?`,
       [uploadId]
@@ -213,7 +203,6 @@ async function uploadChunk(req, res) {
   } catch (error) {
     console.error(`Chunk upload failed (${chunkIndex}):`, error);
     
-    // Clean up temp file on error
     if (chunkData && chunkData.path) {
       await fileUtils.safeDeleteFile(chunkData.path);
     }
@@ -236,7 +225,6 @@ async function finalizeUpload(uploadId) {
     connection = await db.getConnection();
     await connection.beginTransaction();
     
-    // CRITICAL: Lock row with FOR UPDATE to prevent double finalization
     const [uploads] = await connection.query(
       `SELECT id, file_path, total_size, status, final_hash FROM uploads
        WHERE id = ? FOR UPDATE`,
@@ -257,7 +245,6 @@ async function finalizeUpload(uploadId) {
       return;
     }
     
-    // Update status to PROCESSING (prevents concurrent finalization)
     await connection.query(
       `UPDATE uploads SET status = 'PROCESSING', updated_at = NOW()
        WHERE id = ?`,
@@ -276,13 +263,11 @@ async function finalizeUpload(uploadId) {
     console.log(`Calculating SHA-256 hash...`);
     const finalHash = await hashUtils.calculateFileHash(upload.file_path);
     
-    // Verify ZIP validity
     const isValid = await zipUtils.isValidZip(upload.file_path);
     if (!isValid) {
       throw new Error('Invalid ZIP file');
     }
     
-    // Mark as COMPLETED
     await db.query(
       `UPDATE uploads SET status = 'COMPLETED', final_hash = ?, completed_at = NOW()
        WHERE id = ?`,
@@ -294,7 +279,6 @@ async function finalizeUpload(uploadId) {
   } catch (error) {
     console.error(`Finalization failed for ${uploadId}:`, error);
     
-    // Mark as FAILED
     if (connection) {
       await connection.query(
         `UPDATE uploads SET status = 'FAILED' WHERE id = ?`,
@@ -324,7 +308,6 @@ async function getUploadStatus(req, res) {
     
     const upload = uploads[0];
     
-    // Get chunk status
     const [chunkStatus] = await db.query(
       `SELECT COUNT(*) as total, SUM(CASE WHEN status = 'SUCCESS' THEN 1 ELSE 0 END) as completed
        FROM chunks WHERE upload_id = ?`,
@@ -372,7 +355,6 @@ async function getZipContents(req, res) {
       });
     }
     
-    // List ZIP contents using streaming
     const contents = await zipUtils.listZipContents(upload.file_path);
     
     res.json({

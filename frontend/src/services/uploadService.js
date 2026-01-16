@@ -5,7 +5,7 @@ const MAX_RETRIES = 3;
 const RETRY_DELAYS = [500, 1000, 2000];
 
 async function calculateFileHash(file) {
-  const BUFFER_SIZE = 64 * 1024; // 64KB chunks
+  const BUFFER_SIZE = 64 * 1024;
   const crypto = window.crypto.subtle;
   
   return new Promise((resolve, reject) => {
@@ -15,7 +15,6 @@ async function calculateFileHash(file) {
     
     const readNextChunk = () => {
       if (offset >= file.size) {
-        // Finalize hash
         hashPromise.then(hashBuffer => {
           const hashArray = Array.from(new Uint8Array(hashBuffer));
           const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
@@ -32,7 +31,6 @@ async function calculateFileHash(file) {
       const chunk = e.target.result;
       offset += chunk.byteLength;
       
-      // Update hash incrementally
       hashPromise = hashPromise.then(async () => {
         return await crypto.digest('SHA-256', chunk);
       });
@@ -46,9 +44,6 @@ async function calculateFileHash(file) {
   });
 }
 
-/**
- * Initialize upload session with backend
- */
 async function initializeUpload(file, fileHash) {
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
   
@@ -73,9 +68,6 @@ async function initializeUpload(file, fileHash) {
   return await response.json();
 }
 
-/**
- * Calculate SHA-256 hash of a chunk
- */
 async function calculateChunkHash(chunkBlob) {
   const arrayBuffer = await chunkBlob.arrayBuffer();
   const hashBuffer = await window.crypto.subtle.digest('SHA-256', arrayBuffer);
@@ -83,11 +75,7 @@ async function calculateChunkHash(chunkBlob) {
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
-/**
- * Upload single chunk with retry logic
- */
 async function uploadChunk(uploadId, chunkIndex, chunkBlob, retryCount = 0) {
-  // Calculate chunk hash for integrity verification
   const chunkHash = await calculateChunkHash(chunkBlob);
   
   const formData = new FormData();
@@ -109,7 +97,6 @@ async function uploadChunk(uploadId, chunkIndex, chunkBlob, retryCount = 0) {
     return await response.json();
     
   } catch (error) {
-    // Retry logic with exponential backoff
     if (retryCount < MAX_RETRIES) {
       const delay = RETRY_DELAYS[retryCount];
       console.log(`Retrying chunk ${chunkIndex} after ${delay}ms (attempt ${retryCount + 1}/${MAX_RETRIES})`);
@@ -122,10 +109,6 @@ async function uploadChunk(uploadId, chunkIndex, chunkBlob, retryCount = 0) {
   }
 }
 
-/**
- * Main upload orchestrator
- * Implements queue-based concurrent upload with progress tracking
- */
 async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
   const {
     onProgress = () => {},
@@ -138,33 +121,28 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
   } = callbacks;
   
   try {
-    // Step 1: Calculate total chunks
     const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
     console.log(`📦 File: ${file.name} (${file.size} bytes, ${totalChunks} chunks)`);
     
-    // Step 2: Calculate file hash (for integrity check)
-    console.log('Calculating file hash...');
+    console.log('🔐 Calculating file hash...');
     const fileHash = await calculateFileHash(file);
     console.log(`Hash: ${fileHash.substring(0, 16)}...`);
     
-    // Step 3: Initialize upload or resume existing
     let uploadId, uploadedChunks;
     
     if (resumeUploadId) {
-      console.log('Resuming upload:', resumeUploadId);
+      console.log('🔄 Resuming upload:', resumeUploadId);
       uploadId = resumeUploadId;
-      // Fetch current status from backend
       const response = await fetch(`${API_BASE_URL}/upload/${uploadId}/status`);
       if (response.ok) {
         const status = await response.json();
         uploadedChunks = status.progress?.completed || 0;
-        // Convert to array of indices
         uploadedChunks = Array.from({ length: uploadedChunks }, (_, i) => i);
       } else {
         uploadedChunks = [];
       }
     } else {
-      console.log('Initializing upload...');
+      console.log('🚀 Initializing upload...');
       const result = await initializeUpload(file, fileHash);
       uploadId = result.uploadId;
       uploadedChunks = result.uploadedChunks;
@@ -173,7 +151,6 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
     console.log(`Upload ID: ${uploadId}`);
     console.log(`Already uploaded: ${uploadedChunks.length} chunks`);
     
-    // Step 4: Build chunk queue (skip already uploaded)
     const uploadedSet = new Set(uploadedChunks);
     const chunkQueue = [];
     
@@ -183,9 +160,8 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
       }
     }
     
-    console.log(`Chunks to upload: ${chunkQueue.length}/${totalChunks}`);
+    console.log(`📋 Chunks to upload: ${chunkQueue.length}/${totalChunks}`);
     
-    // Step 5: Upload chunks with concurrency control
     const chunkStates = new Array(totalChunks).fill('pending');
     uploadedChunks.forEach(index => {
       chunkStates[index] = 'success';
@@ -196,9 +172,8 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
     const activeUploads = new Set();
     
     const uploadNextChunk = async () => {
-      // Check if upload was cancelled/paused
       if (cancelSignal.cancelled) {
-        console.log('Upload paused');
+        console.log('⏸️ Upload paused');
         onPause(uploadId, chunkStates);
         return;
       }
@@ -214,12 +189,10 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
       onChunkComplete(chunkIndex, 'uploading', chunkStates);
       
       try {
-        // Extract chunk from file
         const start = chunkIndex * CHUNK_SIZE;
         const end = Math.min(start + CHUNK_SIZE, file.size);
         const chunkBlob = file.slice(start, end);
         
-        // Upload chunk
         await uploadChunk(uploadId, chunkIndex, chunkBlob);
         
         chunkStates[chunkIndex] = 'success';
@@ -231,35 +204,30 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
       } catch (error) {
         chunkStates[chunkIndex] = 'error';
         onChunkError(chunkIndex, error.message, chunkStates);
-        console.error(`Chunk ${chunkIndex} failed:`, error.message);
+        console.error(`❌ Chunk ${chunkIndex} failed:`, error.message);
       } finally {
         activeUploads.delete(chunkIndex);
         
-        // Upload next chunk (check cancel signal again)
         if (queueIndex < chunkQueue.length && !cancelSignal.cancelled) {
           await uploadNextChunk();
         }
       }
     };
     
-    // Start concurrent uploads
     const initialBatch = Math.min(MAX_CONCURRENT_UPLOADS, chunkQueue.length);
     await Promise.all(
       Array(initialBatch).fill(null).map(() => uploadNextChunk())
     );
     
-    // Wait for all uploads to complete or until paused
     while (activeUploads.size > 0 && !cancelSignal.cancelled) {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
     
-    // If paused, return the uploadId for resuming
     if (cancelSignal.cancelled) {
-      console.log('Upload paused at', uploadedCount, '/', totalChunks);
+      console.log('⏸️ Upload paused at', uploadedCount, '/', totalChunks);
       return { uploadId, paused: true, progress: uploadedCount };
     }
     
-    // Step 6: Check if all succeeded
     const failedChunks = chunkStates
       .map((state, index) => ({ state, index }))
       .filter(({ state }) => state === 'error');
@@ -268,13 +236,13 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
       throw new Error(`${failedChunks.length} chunks failed to upload`);
     }
     
-    console.log('All chunks uploaded successfully');
+    console.log('✅ All chunks uploaded successfully');
     onComplete(uploadId);
     
     return { uploadId, success: true };
     
   } catch (error) {
-    console.error('Upload failed:', error);
+    console.error('❌ Upload failed:', error);
     onError(error.message);
     throw error;
   }

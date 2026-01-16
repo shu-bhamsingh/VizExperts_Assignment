@@ -1,12 +1,6 @@
-/**
- * Database connection pool manager
- * Provides MySQL connection with automatic reconnection
- */
-
 const mysql = require('mysql2/promise');
 require('dotenv').config();
 
-// Create connection pool for better performance
 const pool = mysql.createPool({
   host: process.env.DB_HOST || 'localhost',
   port: process.env.DB_PORT || 3306,
@@ -20,7 +14,6 @@ const pool = mysql.createPool({
   keepAliveInitialDelay: 0
 });
 
-// Test connection on startup
 pool.getConnection()
   .then(connection => {
     console.log('✅ Database connected successfully');

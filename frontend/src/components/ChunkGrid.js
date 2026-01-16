@@ -1,8 +1,3 @@
-/**
- * Chunk Status Grid Component
- * Visual representation of chunk upload states
- */
-
 import React from 'react';
 import './ChunkGrid.css';
 

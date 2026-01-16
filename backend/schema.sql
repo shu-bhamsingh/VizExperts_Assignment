@@ -1,14 +1,3 @@
--- ====================================================
--- Database Schema for Chunked Upload System
--- ====================================================
-
--- Use existing database (no CREATE DATABASE for online hosting)
--- USE sql12814370;  -- Commented out for local development
--- The database will be selected by the init script or environment
-
--- ====================================================
--- Uploads Table: Main record for each upload session
--- ====================================================
 CREATE TABLE IF NOT EXISTS uploads (
     id VARCHAR(36) PRIMARY KEY,
     filename VARCHAR(255) NOT NULL,
@@ -25,11 +14,6 @@ CREATE TABLE IF NOT EXISTS uploads (
     INDEX idx_created_at (created_at),
     INDEX idx_status_created (status, created_at)
 ) ENGINE=InnoDB;
-
--- ====================================================
--- Chunks Table: Track individual chunk status
--- Composite primary key ensures idempotency
--- ====================================================
 CREATE TABLE IF NOT EXISTS chunks (
     upload_id VARCHAR(36) NOT NULL,
     chunk_index INT UNSIGNED NOT NULL,

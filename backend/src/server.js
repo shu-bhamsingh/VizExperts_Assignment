@@ -11,21 +11,17 @@ const fileUtils = require('./utils/fileUtils');
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  // console.log('Body:', req.body); // uncomment for debugging
   next();
 });
 
-// Routes
 app.use('/upload', uploadRoutes);
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
@@ -33,7 +29,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Server error:', err);
   res.status(500).json({
@@ -42,17 +37,14 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     error: 'Route not found'
   });
 });
 
-// Initialize server
 async function startServer() {
   try {
-    // Ensure directories exist
     const UPLOAD_DIR = process.env.UPLOAD_DIR || './uploads';
     const TEMP_DIR = process.env.TEMP_DIR || './temp';
     
@@ -61,10 +53,8 @@ async function startServer() {
     
     console.log('Directories initialized');
     
-    // Run crash recovery on startup
     await recoveryService.performStartupRecovery();
     
-    // Start cleanup service for abandoned uploads
     cleanupService.startCleanupService();
     
     app.listen(PORT, () => {

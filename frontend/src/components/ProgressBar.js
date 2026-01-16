@@ -1,8 +1,3 @@
-/**
- * Progress Bar Component
- * Shows upload progress with metrics
- */
-
 import React from 'react';
 import './ProgressBar.css';
 
