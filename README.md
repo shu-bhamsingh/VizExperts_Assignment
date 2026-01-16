@@ -18,6 +18,12 @@ A robust file upload system with chunking, resumability, and fault tolerance for
 
 *Real-time progress bar showing upload speed, ETA, and completion percentage*
 
+### Upload Start
+
+![Upload Start](screenshots/3.png)
+
+*Starts the upload process and prepares files for efficient, chunk-based transfer.*
+
 ### Chunk Grid Visualization
 
 ![Chunk Grid](screenshots/4.png)
