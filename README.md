@@ -105,7 +105,7 @@ Server verifies each chunk → All chunks done →
 Final verification → Upload complete
 ```
 
-![Chunk Grid Status](screenshots/chunk-grid.png)
+![Chunk Grid Status](screenshots/4.png)
 
 *Each colored box represents a 5MB chunk being verified and tracked*
 
@@ -113,7 +113,7 @@ Final verification → Upload complete
 
 ## 2. Pause and Resume Logic
 
-![Pause Resume Feature](screenshots/pause-resume.png)
+![Pause Resume Feature](screenshots/5.png)
 
 ### How Pausing Works
 
