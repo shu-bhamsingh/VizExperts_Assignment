@@ -24,7 +24,7 @@
 .progress-title {
   font-size: 18px;
   font-weight: 700;
-  color: #333;
+  color: #1e293b;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -33,68 +33,23 @@
 .progress-percentage {
   font-size: 28px;
   font-weight: 800;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: #7e22ce;
 }
 
 .progress-bar-wrapper {
   position: relative;
   height: 32px;
-  background: #e9ecef;
+  background: #e2e8f0;
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) inset;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) inset;
 }
 
 .progress-bar {
   height: 100%;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(90deg, #7e22ce 0%, #a855f7 100%);
   border-radius: 16px;
   transition: width 0.3s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.progress-bar::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.3),
-    transparent
-  );
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.progress-bar::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.2) 0%,
-    transparent 50%,
-    rgba(0, 0, 0, 0.1) 100%
-  );
 }
 
 .metrics {
@@ -105,23 +60,23 @@
 }
 
 .metric-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  background: #f8fafc;
   padding: 20px;
-  border-radius: 14px;
-  border: 1px solid rgba(102, 126, 234, 0.15);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   transition: all 0.3s ease;
 }
 
 .metric-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-  border-color: rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: #cbd5e1;
 }
 
 .metric-label {
   font-size: 13px;
-  color: #6c757d;
+  color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -131,7 +86,7 @@
 .metric-value {
   font-size: 24px;
   font-weight: 800;
-  color: #667eea;
+  color: #7e22ce;
   display: flex;
   align-items: baseline;
   gap: 4px;
@@ -140,7 +95,7 @@
 .metric-unit {
   font-size: 14px;
   font-weight: 600;
-  color: #6c757d;
+  color: #64748b;
 }
 
 /* Responsive Design */

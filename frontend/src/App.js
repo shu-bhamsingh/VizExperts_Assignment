@@ -136,11 +136,11 @@ function App() {
   
   const handlePause = () => {
     cancelSignalRef.current.cancelled = true;
-    console.log('⏸️ Pausing upload...');
+    console.log('Pausing upload...');
   };
   
   const handleResume = () => {
-    console.log('▶️ Resuming upload...');
+    console.log('Resuming upload...');
     handleUpload();
   };
   
@@ -218,7 +218,7 @@ function App() {
                 disabled={!file}
                 className="button button-primary"
               >
-                {uploadId ? '🔄 Resume Upload' : '🚀 Start Upload'}
+                {uploadId ? 'Resume Upload' : 'Start Upload'}
               </button>
             )}
             
@@ -227,7 +227,7 @@ function App() {
                 onClick={handlePause}
                 className="button button-warning"
               >
-                ⏸️ Pause Upload
+                Pause Upload
               </button>
             )}
             
@@ -236,7 +236,7 @@ function App() {
                 onClick={handleResume}
                 className="button button-success"
               >
-                ▶️ Resume Upload
+              Resume Upload
               </button>
             )}
             
@@ -245,7 +245,7 @@ function App() {
               disabled={uploading}
               className="button button-secondary"
             >
-              🔄 Reset
+              Reset
             </button>
           </div>
         </div>
@@ -274,9 +274,6 @@ function App() {
           </div>
         )}
         
-        <footer className="footer">
-          <p>Features: Chunked Upload • Resumability • Fault Tolerance • Memory Efficient</p>
-        </footer>
       </div>
     </div>
   );

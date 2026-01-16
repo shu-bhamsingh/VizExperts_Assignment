@@ -143,7 +143,7 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
     console.log(`📦 File: ${file.name} (${file.size} bytes, ${totalChunks} chunks)`);
     
     // Step 2: Calculate file hash (for integrity check)
-    console.log('🔐 Calculating file hash...');
+    console.log('Calculating file hash...');
     const fileHash = await calculateFileHash(file);
     console.log(`Hash: ${fileHash.substring(0, 16)}...`);
     
@@ -151,7 +151,7 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
     let uploadId, uploadedChunks;
     
     if (resumeUploadId) {
-      console.log('🔄 Resuming upload:', resumeUploadId);
+      console.log('Resuming upload:', resumeUploadId);
       uploadId = resumeUploadId;
       // Fetch current status from backend
       const response = await fetch(`${API_BASE_URL}/upload/${uploadId}/status`);
@@ -164,7 +164,7 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
         uploadedChunks = [];
       }
     } else {
-      console.log('🚀 Initializing upload...');
+      console.log('Initializing upload...');
       const result = await initializeUpload(file, fileHash);
       uploadId = result.uploadId;
       uploadedChunks = result.uploadedChunks;
@@ -183,7 +183,7 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
       }
     }
     
-    console.log(`📋 Chunks to upload: ${chunkQueue.length}/${totalChunks}`);
+    console.log(`Chunks to upload: ${chunkQueue.length}/${totalChunks}`);
     
     // Step 5: Upload chunks with concurrency control
     const chunkStates = new Array(totalChunks).fill('pending');
@@ -198,7 +198,7 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
     const uploadNextChunk = async () => {
       // Check if upload was cancelled/paused
       if (cancelSignal.cancelled) {
-        console.log('⏸️ Upload paused');
+        console.log('Upload paused');
         onPause(uploadId, chunkStates);
         return;
       }
@@ -231,7 +231,7 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
       } catch (error) {
         chunkStates[chunkIndex] = 'error';
         onChunkError(chunkIndex, error.message, chunkStates);
-        console.error(`❌ Chunk ${chunkIndex} failed:`, error.message);
+        console.error(`Chunk ${chunkIndex} failed:`, error.message);
       } finally {
         activeUploads.delete(chunkIndex);
         
@@ -255,7 +255,7 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
     
     // If paused, return the uploadId for resuming
     if (cancelSignal.cancelled) {
-      console.log('⏸️ Upload paused at', uploadedCount, '/', totalChunks);
+      console.log('Upload paused at', uploadedCount, '/', totalChunks);
       return { uploadId, paused: true, progress: uploadedCount };
     }
     
@@ -268,13 +268,13 @@ async function uploadFile(file, callbacks = {}, resumeUploadId = null) {
       throw new Error(`${failedChunks.length} chunks failed to upload`);
     }
     
-    console.log('✅ All chunks uploaded successfully');
+    console.log('All chunks uploaded successfully');
     onComplete(uploadId);
     
     return { uploadId, success: true };
     
   } catch (error) {
-    console.error('❌ Upload failed:', error);
+    console.error('Upload failed:', error);
     onError(error.message);
     throw error;
   }
