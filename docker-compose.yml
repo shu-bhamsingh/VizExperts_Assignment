@@ -4,7 +4,7 @@ services:
   # MySQL Database
   mysql:
     image: mysql:8.0
-    container_name: chunked_upload_db
+    container_name: upload_db
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
@@ -25,7 +25,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: chunked_upload_backend
+    container_name: upload_backend
     restart: unless-stopped
     ports:
       - "3001:3001"
@@ -34,9 +34,9 @@ services:
       - PORT=3001
       - DB_HOST=mysql
       - DB_PORT=3306
-      - DB_USER=root
-      - DB_PASSWORD=rootpassword
-      - DB_NAME=chunked_upload
+      - DB_USER=appuser
+      - DB_PASSWORD=apppassword
+      - DB_NAME=uploads
       - UPLOAD_DIR=/app/uploads
       - TEMP_DIR=/app/temp
       - CHUNK_SIZE=5242880
@@ -54,7 +54,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    container_name: chunked_upload_frontend
+    container_name: upload_frontend
     restart: unless-stopped
     ports:
       - "3000:80"

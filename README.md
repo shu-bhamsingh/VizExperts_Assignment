@@ -423,3 +423,10 @@ Track upload statistics, success rates, average speeds, peak times, etc. Useful 
 ---
 
 Built with React (frontend), Node.js + Express (backend), and MySQL (database)
+
+
+## App Access
+
+- **Frontend:** http://localhost:3000
+- **Backend API:** http://localhost:3001
+
