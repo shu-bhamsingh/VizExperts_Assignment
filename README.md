@@ -14,7 +14,7 @@ A robust file upload system with chunking, resumability, and fault tolerance for
 
 ### Upload in Progress
 
-![Upload Progress](screenshots/2.png) (screenshots/3.png)
+![Upload Progress](screenshots/2.png)
 
 *Real-time progress bar showing upload speed, ETA, and completion percentage*
 
